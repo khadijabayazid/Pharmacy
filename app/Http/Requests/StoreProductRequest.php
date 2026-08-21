@@ -25,13 +25,13 @@ class StoreProductRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'category_id' => ['required', 'integer', 'exists:categories, id'],
+            'category_id' => ['required', 'integer', 'exists:categories,id'],
             'name' => ['required', 'string', 'max:150'],
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
             'quantity' => ['required', 'integer' ,'min:0'],
             'is_required_prescription' => ['required', 'boolean'],
-            'image' => ['nullable', 'image', 'mimes:jbg,jpeg,png,webp','max:2048'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp','max:2048'],
             'details' => ['nullable', 'array'],
             'details.*.type' => ['required', new Enum(ProductDetailType::class)],
             'details.*.content' => ['required', 'string'],
