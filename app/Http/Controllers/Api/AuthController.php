@@ -30,7 +30,7 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => $request->password, // بيصير هاش تلقائيًا بسبب casts('password' => 'hashed')
+            'password' => $request->password,
             'phone' => $request->phone,
             'role' => $request->input('role', 'customer'),
         ]);
@@ -84,6 +84,20 @@ class AuthController extends Controller
     {
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'تم تسجيل الخروج بنجاح']);
+    }
+
+    public function deleteAccount(Request $request)
+    {
+        $user = $request->user();
+
+        $user->tokens()->delete();
+
+
+        $user->delete();
+
+        return response()->json([
+            'message' => 'تم حذف الحساب بنجاح',
+        ]);
     }
 
     public function me(Request $request)
