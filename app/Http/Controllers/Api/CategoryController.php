@@ -6,13 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
 use App\Models\Category;
-use Illuminate\Http\Request;
+use App\Models\Product;
 
 class CategoryController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
         $categories = Category::withCount('products')->get();
@@ -23,23 +20,28 @@ class CategoryController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+    public function stats()
+    {
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'total_categories' => Category::count(),
+                'total_products' => Product::count(),
+            ],
+        ]);
+    }
+
     public function store(StoreCategoryRequest $request)
     {
         $category = Category::create($request->validated());
 
         return response()->json([
             'status' => true,
-            'message' => 'Category created successfully',
+            'message' => 'تم إنشاء التصنيف بنجاح',
             'data' => $category
-        ],201);
+        ], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(Category $category)
     {
         $category->load('products');
@@ -50,37 +52,31 @@ class CategoryController extends Controller
         ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(UpdateCategoryRequest $request, Category $category)
     {
         $category->update($request->validated());
 
         return response()->json([
             'status' => true,
-            'message' => 'Category updated successfully',
+            'message' => 'تم تحديث التصنيف بنجاح',
             'data' => $category,
         ]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Category $category)
     {
-        if($category->products()->exists()){
+        if ($category->products()->exists()) {
             return response()->json([
                 'status' => false,
-                'message' => 'cannot delete category with associated products',
-                
+                'message' => 'لا يمكن حذف تصنيف مرتبط بمنتجات',
             ], 422);
         }
 
         $category->delete();
+
         return response()->json([
             'status' => true,
-            'message' => 'Category deleted successfully',
+            'message' => 'تم حذف التصنيف بنجاح',
         ]);
     }
 }

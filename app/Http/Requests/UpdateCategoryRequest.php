@@ -4,17 +4,18 @@ namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\ApiFormRequest;
 use Illuminate\Validation\Rule;
 use Override;
 
-class UpdateCategoryRequest extends FormRequest
+class UpdateCategoryRequest extends ApiFormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return $this->user()?->isAdmin();
+        return $this->user()?->isAdmin() ?? false;
     }
 
     /**
@@ -39,12 +40,11 @@ class UpdateCategoryRequest extends FormRequest
 
     public function messages()
     {
-        return[
-            'name.required' => 'The category name is required.',
-            'name.string' => 'The category name must be a string.',
-            'name.max' => 'The category name may not be greater than 100 characters.',
-            'name.unique' => 'The category name has already been taken.',
-            
+        return [
+            'name.required' => 'اسم التصنيف مطلوب.',
+            'name.string' => 'اسم التصنيف يجب أن يكون نصًا.',
+            'name.max' => 'اسم التصنيف يجب ألا يتجاوز 100 حرف.',
+            'name.unique' => 'اسم التصنيف مستخدم مسبقًا.',
         ];
     }
 }

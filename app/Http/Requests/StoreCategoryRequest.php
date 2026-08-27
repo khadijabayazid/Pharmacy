@@ -3,16 +3,17 @@
 namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
+use App\Http\Requests\ApiFormRequest;
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreCategoryRequest extends FormRequest
+class StoreCategoryRequest extends ApiFormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return $this->user()?->isAdmin();
+        return $this->user()?->isAdmin() ?? false;
     }
 
     /**
@@ -24,18 +25,17 @@ class StoreCategoryRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:100', 'unique:categories,name'],
-            'description' => ['nullable', 'string'],
+            
         ];
     }
 
     public function messages(): array
     {
         return [
-            'name.required' => 'The category name is required.',
-            'name.string' => 'The category name must be a string.',
-            'name.max' => 'The category name may not be greater than 100 characters.',
-            'name.unique' => 'The category name has already been taken.',
-            'description.string' => 'The description must be a string.',
+            'name.required' => 'اسم التصنيف مطلوب.',
+            'name.string' => 'اسم التصنيف يجب أن يكون نصًا.',
+            'name.max' => 'اسم التصنيف يجب ألا يتجاوز 100 حرف.',
+            'name.unique' => 'اسم التصنيف مستخدم مسبقًا.',
         ];
     }
 }
