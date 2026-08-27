@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProfileController;
@@ -37,6 +38,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('categories/{category}', [CategoryController::class, 'update']);
     Route::delete('categories/{category}', [CategoryController::class, 'destroy']);
 
+    Route::get('home', [HomeController::class, 'index']);
+    Route::get('products/best-sellers', [HomeController::class, 'bestSellers']);
+    Route::get('products/new-arrivals', [HomeController::class, 'newArrivals']);
+    Route::get('products/prescription-required', [HomeController::class, 'prescriptionRequired']);
 
     Route::get('products/search', [ProductController::class, 'search']);
     Route::get('products', [ProductController::class, 'index']);
