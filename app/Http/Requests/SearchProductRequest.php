@@ -3,17 +3,16 @@
 namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
-use App\Http\Requests\ApiFormRequest;
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreCategoryRequest extends ApiFormRequest
+class SearchProductRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return $this->user()?->isAdmin() ?? false;
+        return true;
     }
 
     /**
@@ -24,16 +23,16 @@ class StoreCategoryRequest extends ApiFormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:100', 'unique:categories,name'],
+            'q' => ['required', 'string', 'min:1'],
         ];
     }
+
     public function messages(): array
     {
         return [
-            'name.required' => 'اسم التصنيف مطلوب.',
-            'name.string' => 'اسم التصنيف يجب أن يكون نصًا.',
-            'name.max' => 'اسم التصنيف يجب ألا يتجاوز 100 حرف.',
-            'name.unique' => 'اسم التصنيف مستخدم مسبقًا.',
+            'q.required' => 'كلمة البحث مطلوبة.',
+            'q.string' => 'كلمة البحث يجب أن تكون نصًا.',
+            'q.min' => 'كلمة البحث يجب أن تحتوي على حرف واحد على الأقل.',
         ];
     }
 }

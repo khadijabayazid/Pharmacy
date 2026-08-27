@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SearchProductRequest;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Models\Category;
@@ -32,13 +33,9 @@ class ProductController extends Controller
         ]);
     }
 
-    public function search(Request $request)
+    public function search(SearchProductRequest $request)
     {
-        $request->validate([
-            'q' => ['required', 'string', 'min:1'],
-        ]);
-
-        $products = Product::with('category')
+        $products = Product::with('category', 'details')
             ->where('name', 'like', '%' . $request->q . '%')
             ->limit(20)
             ->get();
@@ -71,7 +68,7 @@ class ProductController extends Controller
 
         return response()->json([
             'status'  => true,
-            'message' => 'Product created successfuly',
+            'message' => 'تم إنشاء المنتج بنجاح',
             'data'    => $product->load('details'),
         ], 201);
     }
@@ -116,7 +113,7 @@ class ProductController extends Controller
 
         return response()->json([
             'status'  => true,
-            'message' => 'Product updated successfully',
+            'message' => 'تم تحديث المنتج بنجاح',
             'data'    => $product->load('details'),
         ]);
     }
@@ -134,7 +131,7 @@ class ProductController extends Controller
 
         return response()->json([
             'status'  => true,
-            'message' => 'Product deleted successfully',
+            'message' => 'تم حذف المنتج بنجاح',
         ]);
     }
 }
