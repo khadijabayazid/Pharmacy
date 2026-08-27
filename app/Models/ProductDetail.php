@@ -5,7 +5,7 @@ namespace App\Models;
 use App\Enums\ProductDetailType;
 use Illuminate\Database\Eloquent\Model;
 
-class Productdetail extends Model
+class ProductDetail extends Model
 {
     protected $fillable = ['product_id', 'type' ,'content'];
 

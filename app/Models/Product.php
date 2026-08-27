@@ -23,6 +23,11 @@ class Product extends Model
         'price' => 'decimal:2',
     ];
 
+    public function details()
+    {
+        return $this->hasMany(ProductDetail::class);
+    }
+
     public function category()
     {
         return $this->belongsTo(Category::class);
