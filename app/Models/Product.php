@@ -23,6 +23,13 @@ class Product extends Model
         'price' => 'decimal:2',
     ];
 
+    protected $appends = ['image_url'];
+
+    public function getImageUrlAttribute()
+    {
+        return $this->image_path ? asset('storage/' . $this->image_path) : null;
+    }
+
     public function details()
     {
         return $this->hasMany(ProductDetail::class);
