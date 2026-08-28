@@ -7,14 +7,14 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Enum;
 
-class StoreProductRequest extends FormRequest
+class StoreProductRequest extends ApiFormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return $this->user()?->isAdmin();
+        return $this->user()?->isAdmin() ?? false;
     }
 
     /**
@@ -26,7 +26,7 @@ class StoreProductRequest extends FormRequest
     {
         return [
             'category_id' => ['required', 'integer', 'exists:categories,id'],
-            'name' => ['required', 'string', 'max:150'],
+            'name' => ['required', 'string', 'max:150', 'unique:products,name'],
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
             'quantity' => ['required', 'integer' ,'min:0'],
@@ -41,14 +41,37 @@ class StoreProductRequest extends FormRequest
     public function messages()
     {
         return[
-            'category_id.required' => 'The category field is required',
-            'category_id.exists' => 'The selected category is invalid.',
-            'name.required' => 'The product name field is required.',
-            'price.required' => 'The price field is required.',
-            'price.min' => 'The price cannot be negative.',
-            'quantity.required' => 'The quantity field is required.',
-            'image.image' => 'The uploaded file must be an image.',
-            'details.*.type' => 'The selected detail type is invalid.',
+            'category_id.required' => 'التصنيف مطلوب.',
+            'category_id.integer' => 'التصنيف غير صالح.',
+            'category_id.exists' => 'التصنيف المحدد غير موجود.',
+
+            'name.unique' => 'يوجد منتج بنفس الاسم مسبقًا.',
+            'name.required' => 'اسم المنتج مطلوب.',
+            'name.string' => 'اسم المنتج يجب أن يكون نصًا.',
+            'name.max' => 'اسم المنتج يجب ألا يتجاوز 150 حرفًا.',
+
+            'description.string' => 'الوصف يجب أن يكون نصًا.',
+
+            'price.required' => 'السعر مطلوب.',
+            'price.numeric' => 'السعر يجب أن يكون رقمًا.',
+            'price.min' => 'السعر لا يمكن أن يكون سالبًا.',
+
+            'quantity.required' => 'الكمية مطلوبة.',
+            'quantity.integer' => 'الكمية يجب أن تكون رقمًا صحيحًا.',
+            'quantity.min' => 'الكمية لا يمكن أن تكون سالبة.',
+
+            'is_required_prescription.required' => 'يجب تحديد ما إذا كان المنتج يتطلب وصفة طبية.',
+            'is_required_prescription.boolean' => 'القيمة يجب أن تكون صحيحة أو خاطئة.',
+
+            'image.image' => 'الملف المرفوع يجب أن يكون صورة.',
+            'image.mimes' => 'صيغة الصورة يجب أن تكون jpg أو jpeg أو png أو webp.',
+            'image.max' => 'حجم الصورة يجب ألا يتجاوز 2 ميجابايت.',
+
+            'details.array' => 'صيغة التفاصيل غير صحيحة.',
+            'details.*.type.required' => 'نوع التفصيل مطلوب.',
+            'details.*.type' => 'نوع التفصيل المحدد غير صالح.',
+            'details.*.content.required' => 'محتوى التفصيل مطلوب.',
+            'details.*.content.string' => 'محتوى التفصيل يجب أن يكون نصًا.',
 
         ];
     }
