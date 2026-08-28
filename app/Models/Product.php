@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Enums\StockStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
 {
     use HasFactory;
+
+    private const LOW_STOCK_THRESHOLD = 10;
+    
     protected $fillable = [
         'name',
         'description',
@@ -23,11 +27,34 @@ class Product extends Model
         'price' => 'decimal:2',
     ];
 
-    protected $appends = ['image_url'];
+    protected $appends = ['image_url', 'stock_status', 'stock_status_label'];
 
     public function getImageUrlAttribute()
     {
         return $this->image_path ? asset('storage/' . $this->image_path) : null;
+    }
+
+    public function getStockStatusAttribute(): string
+    {
+        return $this->resolveStockStatus()->value;
+    }
+
+    public function getStockStatusLabelAttribute(): string
+    {
+        return $this->resolveStockStatus()->label();
+    }
+
+    private function resolveStockStatus(): StockStatus
+    {
+        if ($this->quantity <= 0) {
+            return StockStatus::OutOfStock;
+        }
+
+        if ($this->quantity <= self::LOW_STOCK_THRESHOLD) {
+            return StockStatus::LowStock;
+        }
+
+        return StockStatus::InStock;
     }
 
     public function details()
