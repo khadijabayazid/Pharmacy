@@ -133,10 +133,6 @@ class ProductController extends Controller
             ], 403);
         }
 
-        if ($product->image_path) {
-            Storage::disk('public')->delete($product->image_path);
-        }
-
         $product->delete();
 
         return response()->json([

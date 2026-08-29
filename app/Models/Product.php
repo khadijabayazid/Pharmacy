@@ -5,10 +5,11 @@ namespace App\Models;
 use App\Enums\StockStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     private const LOW_STOCK_THRESHOLD = 10;
     
