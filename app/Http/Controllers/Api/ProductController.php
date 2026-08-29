@@ -18,7 +18,7 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $products = Product::with(['category', 'details'])
+        $products = Product::with(['category'])
             ->when(
                 $request->filled('category_id'),
                 function ($query) use ($request) {
@@ -36,7 +36,10 @@ class ProductController extends Controller
     public function search(SearchProductRequest $request)
     {
         $products = Product::with('category', 'details')
-            ->where('name', 'like', '%' . $request->q . '%')
+            ->where(function ($query) use ($request) {
+                $query->where('name', 'like', '%' . $request->q . '%')
+                    ->orWhere('description', 'like', '%' . $request->q . '%');
+            })
             ->limit(20)
             ->get();
 
@@ -123,7 +126,7 @@ class ProductController extends Controller
      */
     public function destroy(Request $request, Product $product)
     {
-        if(! $request->user()?->isAdmin()) {
+        if (! $request->user()?->isAdmin()) {
             return response()->json([
                 'status' => false,
                 'message' => 'غير مصرح لك بحذف المنتج',
