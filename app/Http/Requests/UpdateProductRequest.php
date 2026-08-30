@@ -29,22 +29,27 @@ class UpdateProductRequest extends ApiFormRequest
 
         return [
             'category_id' => ['sometimes', 'required', 'integer', 'exists:categories,id'],
-            'name' => ['sometimes', 'required', 'string', 'max:150',
-             Rule::unique('products', 'name')->ignore($productId)],
+            'name' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:150',
+                Rule::unique('products', 'name')->ignore($productId)->whereNull('deleted_at'),
+            ],
             'description' => ['nullable', 'string'],
             'price' => ['sometimes', 'required', 'numeric', 'min:0'],
-            'quantity' => ['sometimes', 'required', 'integer' ,'min:0'],
+            'quantity' => ['sometimes', 'required', 'integer', 'min:0'],
             'is_required_prescription' => ['sometimes', 'required', 'boolean'],
-            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp','max:2048'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'details' => ['nullable', 'array'],
             'details.*.type' => ['required', new Enum(ProductDetailType::class)],
             'details.*.content' => ['required', 'string'],
         ];
     }
 
-     public function messages()
+    public function messages()
     {
-        return[
+        return [
             'category_id.required' => 'التصنيف مطلوب.',
             'category_id.integer' => 'التصنيف غير صالح.',
             'category_id.exists' => 'التصنيف المحدد غير موجود.',

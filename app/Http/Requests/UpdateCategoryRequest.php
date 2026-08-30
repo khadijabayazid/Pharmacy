@@ -28,13 +28,13 @@ class UpdateCategoryRequest extends ApiFormRequest
         $categoryId = $this->route('category')->id;
 
         return [
-             'name' => [
+            'name' => [
                 'sometimes',
                 'required',
                 'string',
                 'max:100',
-                Rule::unique('categories', 'name')->ignore($categoryId),
-             ],
+                Rule::unique('categories', 'name')->ignore($categoryId)->whereNull('deleted_at'),
+            ],
         ];
     }
 

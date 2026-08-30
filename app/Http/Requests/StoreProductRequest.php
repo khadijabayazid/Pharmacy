@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Enums\ProductDetailType;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 
 class StoreProductRequest extends ApiFormRequest
@@ -26,12 +27,17 @@ class StoreProductRequest extends ApiFormRequest
     {
         return [
             'category_id' => ['required', 'integer', 'exists:categories,id'],
-            'name' => ['required', 'string', 'max:150', 'unique:products,name'],
+            'name' => [
+                'required',
+                'string',
+                'max:150',
+                Rule::unique('products', 'name')->whereNull('deleted_at'),
+            ],
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
-            'quantity' => ['required', 'integer' ,'min:0'],
+            'quantity' => ['required', 'integer', 'min:0'],
             'is_required_prescription' => ['required', 'boolean'],
-            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp','max:2048'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'details' => ['nullable', 'array'],
             'details.*.type' => ['required', new Enum(ProductDetailType::class)],
             'details.*.content' => ['required', 'string'],
@@ -40,7 +46,7 @@ class StoreProductRequest extends ApiFormRequest
 
     public function messages()
     {
-        return[
+        return [
             'category_id.required' => 'التصنيف مطلوب.',
             'category_id.integer' => 'التصنيف غير صالح.',
             'category_id.exists' => 'التصنيف المحدد غير موجود.',
