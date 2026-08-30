@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
+    public const DELIVERY_PRICE = 100;
+
     use HasFactory;
     protected $fillable = [
         'user_id',
@@ -14,6 +16,8 @@ class Order extends Model
         'prescription_id',
         'status',
         'address',
+        'total_price',
+        'delivery_price',
         'assigned_at',
         'delivered_at',
         'pharmacy_rating',
@@ -24,6 +28,8 @@ class Order extends Model
     protected $casts = [
         'assigned_at' => 'datetime',
         'delivered_at' => 'datetime',
+        'total_price' => 'decimal:2',
+        'delivery_price' => 'decimal:2',
         'pharmacy_rating' => 'integer',
         'delivery_rating' => 'integer',
     ];

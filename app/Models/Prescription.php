@@ -10,14 +10,15 @@ class Prescription extends Model
     use HasFactory;
     protected $fillable = [
         'image_path',
-        // 'upload_date',
         'notes',
-        'status'
     ];
 
-    protected $casts = [
-        'upload_date' => 'datetime',
-    ];
+    protected $appends = ['image_url'];
+
+    public function getImageUrlAttribute()
+    {
+        return $this->image_path ? asset('storage/' . $this->image_path) : null;
+    }
 
     public function orders()
     {

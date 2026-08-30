@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AssignDeliveryRequest;
 use App\Http\Requests\PlaceOrderRequest;
 use App\Models\Order;
+use App\Models\Prescription;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -47,44 +48,62 @@ class OrderController extends Controller
     {
         $user = $this->currentUser($request);
         $productIds = collect($request->items)->pluck('product_id')->toArray();
+
         $result = DB::transaction(function () use ($request, $productIds, $user) {
-            $products = Product::whereIn('id', $productIds)->lockForUpdate()->get()
-            ->keyBy('id');
+            $products = Product::whereIn('id', $productIds)->lockForUpdate()->get()->keyBy('id');
             $requiresPrescription = false;
+            $totalPrice = 0;
 
-            foreach($request->items as $item){
+            foreach ($request->items as $item) {
                 $product = $products->get($item['product_id']);
-                if($item['quantity'] > $product->quantity){
-                    return ['error' => "Insufficient stock for product: {$product->name}"];
+
+                if ($item['quantity'] > $product->quantity) {
+                    return ['error' => "الكمية المتوفرة غير كافية للمنتج: {$product->name}"];
                 }
 
-                if($product->is_requires_prescription){
+                if ($product->is_required_prescription) {
                     $requiresPrescription = true;
-
                 }
+
+                $totalPrice += $item['price'] * $item['quantity']; 
             }
-            if($requiresPrescription && !$request->filled('prescription_id')){
-                return ['error' => 'An item in your order requires a prescription. Please upload it to proceed.'];
+
+            if ($requiresPrescription && ! $request->hasFile('prescription_image')) {
+                return ['error' => 'أحد منتجات طلبك يتطلب وصفة طبية، يرجى رفع صورتها للمتابعة.'];
             }
+
+            $prescriptionId = null;
+
+            if ($request->hasFile('prescription_image')) {
+                $prescription = Prescription::create([
+                    'image_path' => $request->file('prescription_image')->store('prescriptions', 'public'),
+                ]);
+                $prescriptionId = $prescription->id;
+            }
+
             $order = Order::create([
                 'user_id' => $user->id,
                 'address' => $request->address,
-                'prescription_id' => $request->prescription_id,
+                'prescription_id' => $prescriptionId,
                 'status' => OrderStatus::Pending->value,
+                'total_price' => $totalPrice,
+                'delivery_price' => Order::DELIVERY_PRICE,
             ]);
-            foreach($request->items as $item){
+
+            foreach ($request->items as $item) {
                 $product = $products->get($item['product_id']);
                 $order->orderItems()->create([
                     'product_id' => $product->id,
                     'quantity' => $item['quantity'],
-                    'price' => $product->price,
+                    'price' => $item['price'], 
                 ]);
                 $product->decrement('quantity', $item['quantity']);
             }
+
             return ['order' => $order];
         });
 
-        if(isset($result['error'])){
+        if (isset($result['error'])) {
             return response()->json([
                 'status' => false,
                 'message' => $result['error'],
@@ -93,10 +112,9 @@ class OrderController extends Controller
 
         return response()->json([
             'status' => true,
-            'message' => 'Order placed successfully! Pending pharmacist approval.',
-            'data' => $result['order']->load(['orderItems.product']),
+            'message' => 'تم تقديم الطلب بنجاح، بانتظار موافقة الصيدلية.',
+            'data' => $result['order']->load(['orderItems.product', 'prescription']),
         ], 201);
-
     }
 
 
@@ -124,28 +142,28 @@ class OrderController extends Controller
 
         $order->update(['status' => OrderStatus::Accepted->value]);
         return response()->json([
-                'status' => true,
-                'message' => 'Order accepted successfully.',
-                'data' => $order->fresh(['orderItems.product'])
-            ]);
+            'status' => true,
+            'message' => 'Order accepted successfully.',
+            'data' => $order->fresh(['orderItems.product'])
+        ]);
     }
 
-    public function reject(Request $request, Order $order) {
+    public function reject(Request $request, Order $order)
+    {
         $this->authorizeAdmin($this->currentUser($request));
 
-        if($order->status !== OrderStatus::Pending->value){
+        if ($order->status !== OrderStatus::Pending->value) {
             return response()->json([
                 'status' => false,
                 'message' => 'Only pending orders can be rejected.',
             ], 422);
         }
 
-        DB::transaction(function () use ($order){
-            foreach($order->orderItems as $item){
-                $item->product->increment('quantity', $item->quntity);
+        DB::transaction(function () use ($order) {
+            foreach ($order->orderItems as $item) {
+                $item->product->increment('quantity', $item->quantity);
             }
             $order->update(['status' => OrderStatus::Rejected->value]);
-            
         });
         return response()->json([
             'status' => true,
@@ -182,7 +200,7 @@ class OrderController extends Controller
     {
         $this->authorizeAdmin($this->currentUser($request));
 
-        if($order->status !== OrderStatus::OnDelivery->value){
+        if ($order->status !== OrderStatus::OnDelivery->value) {
             return response()->json([
                 'status' => false,
                 'message' => 'Only orders that are on delivery can be marked as delivered.',
