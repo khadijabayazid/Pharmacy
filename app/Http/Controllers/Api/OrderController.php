@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\OrderStatus;
+use App\Enums\RejectionReason;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AssignDeliveryRequest;
 use App\Http\Requests\PlaceOrderRequest;
+use App\Http\Requests\RejectOrderRequest;
 use App\Models\Order;
 use App\Models\Prescription;
 use App\Models\Product;
@@ -26,7 +28,7 @@ class OrderController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $this->currentUser($request);
-        $query = Order::with(['orderItems.product', 'delivery', 'prescription']);
+        $query = Order::with(['orderItems.product', 'delivery', 'prescription', 'user']);
         if ($user->isAdmin()) {
             if ($request->filled('status')) {
                 $query->where('status', $request->status);
@@ -47,6 +49,13 @@ class OrderController extends Controller
     public function store(PlaceOrderRequest $request)
     {
         $user = $this->currentUser($request);
+
+        if (Order::where('user_id', $user->id)->where('status', OrderStatus::Pending->value)->exists()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'لديك طلب قيد الانتظار بالفعل، يجب إنهاؤه أولًا قبل تقديم طلب جديد.',
+            ], 422);
+        }
         $productIds = collect($request->items)->pluck('product_id')->toArray();
 
         $result = DB::transaction(function () use ($request, $productIds, $user) {
@@ -65,7 +74,7 @@ class OrderController extends Controller
                     $requiresPrescription = true;
                 }
 
-                $totalPrice += $item['price'] * $item['quantity']; 
+                $totalPrice += $item['price'] * $item['quantity'];
             }
 
             if ($requiresPrescription && ! $request->hasFile('prescription_image')) {
@@ -91,13 +100,11 @@ class OrderController extends Controller
             ]);
 
             foreach ($request->items as $item) {
-                $product = $products->get($item['product_id']);
                 $order->orderItems()->create([
-                    'product_id' => $product->id,
+                    'product_id' => $item['product_id'],
                     'quantity' => $item['quantity'],
-                    'price' => $item['price'], 
+                    'price' => $item['price'],
                 ]);
-                $product->decrement('quantity', $item['quantity']);
             }
 
             return ['order' => $order];
@@ -133,42 +140,67 @@ class OrderController extends Controller
     public function accept(Request $request, Order $order)
     {
         $this->authorizeAdmin($this->currentUser($request));
+
         if ($order->status !== OrderStatus::Pending->value) {
             return response()->json([
                 'status' => false,
-                'message' => 'Only pending orders can be accepted.',
+                'message' => 'يمكن قبول الطلبات قيد الانتظار فقط.',
             ], 422);
         }
 
-        $order->update(['status' => OrderStatus::Accepted->value]);
+        $result = DB::transaction(function () use ($order) {
+            $order->load('orderItems');
+            $productIds = $order->orderItems->pluck('product_id');
+            $products = Product::whereIn('id', $productIds)->lockForUpdate()->get()
+                ->keyBy('id');
+
+            foreach ($order->orderItems as $item) {
+                $product = $products->get($item->product_id);
+                if ($item->quantity > $product->quantity) {
+                    return ['error' => "الكمية المتوفرة غير كافية حاليًا للمنتج: {$product->name}"];
+                }
+            }
+
+            foreach ($order->orderItems as $item) {
+                $products->get($item->product_id)->decrement('quantity', $item->quantity);
+            }
+
+            $order->update(['status' => OrderStatus::Accepted->value]);
+
+            return ['ok' => true];
+        });
+
+        if (isset($result['error'])) {
+            return response()->json(['status' => false, 'message' => $result['error']], 422);
+        }
+
         return response()->json([
             'status' => true,
-            'message' => 'Order accepted successfully.',
-            'data' => $order->fresh(['orderItems.product'])
+            'message' => 'تم قبول الطلب بنجاح.',
+            'data' => $order->fresh(['orderItems.product']),
         ]);
     }
 
-    public function reject(Request $request, Order $order)
+    public function reject(RejectOrderRequest $request, Order $order)
     {
         $this->authorizeAdmin($this->currentUser($request));
 
         if ($order->status !== OrderStatus::Pending->value) {
             return response()->json([
                 'status' => false,
-                'message' => 'Only pending orders can be rejected.',
+                'message' => 'يمكن رفض الطلبات قيد الانتظار فقط.',
             ], 422);
         }
 
-        DB::transaction(function () use ($order) {
-            foreach ($order->orderItems as $item) {
-                $item->product->increment('quantity', $item->quantity);
-            }
-            $order->update(['status' => OrderStatus::Rejected->value]);
-        });
+        $order->update([
+            'status' => OrderStatus::Rejected->value,
+            'rejection_reason' => $request->rejection_reason,
+        ]);
+
         return response()->json([
             'status' => true,
-            'message' => 'Order rejected successfully.',
-            'data' => $order->fresh(['orderItems.product'])
+            'message' => 'تم رفض الطلب بنجاح.',
+            'data' => $order->fresh(['orderItems.product']),
         ]);
     }
 
@@ -179,7 +211,7 @@ class OrderController extends Controller
         if ($order->status !== OrderStatus::Accepted->value) {
             return response()->json([
                 'status' => false,
-                'message' => 'Only accepted orders can be assigned for delivery.',
+                'message' => 'يمكن تعيين عامل التوصيل للطلبات المقبولة فقط.',
             ], 422);
         }
 
@@ -191,7 +223,7 @@ class OrderController extends Controller
 
         return response()->json([
             'status' => true,
-            'message' => 'Delivery assigned successfully.',
+            'message' => 'تم تعيين عامل التوصيل بنجاح.',
             'data' => $order->fresh(['orderItems.product', 'delivery']),
         ]);
     }
@@ -203,7 +235,7 @@ class OrderController extends Controller
         if ($order->status !== OrderStatus::OnDelivery->value) {
             return response()->json([
                 'status' => false,
-                'message' => 'Only orders that are on delivery can be marked as delivered.',
+                'message' => 'يمكن تأكيد التسليم للطلبات قيد التوصيل فقط.',
             ], 422);
         }
 
@@ -214,14 +246,53 @@ class OrderController extends Controller
 
         return response()->json([
             'status' => true,
-            'message' => 'Order marked as delivered successfully.',
+            'message' => 'تم تأكيد تسليم الطلب بنجاح.',
             'data' => $order->fresh(['orderItems.product', 'delivery']),
+        ]);
+    }
+
+    public function statuses(Request $request): JsonResponse
+    {
+        $user = $this->currentUser($request);
+
+        $query = Order::query()->select([
+            'id',
+            'user_id',
+            'status',
+            'rejection_reason',
+            'delivery_id',
+            'assigned_at',
+            'delivered_at',
+        ])->with('delivery.user:id,name,phone');
+
+        if ($user->isAdmin()) {
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+        } else {
+            $query->where('user_id', $user->id);
+        }
+
+        $orders = $query->get()->map(fn($order) => [
+            'id' => $order->id,
+            'status' => $order->status,
+            'rejection_reason' => $order->rejection_reason,
+            'delivery' => $order->delivery ? [
+                'name' => $order->delivery->user->name,
+                'phone' => $order->delivery->user->phone,
+            ] : null,
+            'delivered_at' => $order->delivered_at,
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'data' => $orders,
         ]);
     }
 
     private function authorizeAdmin(User $user)
     {
-        abort_unless($user->isAdmin(), 403, 'You do not have permission to perform this action.');
+        abort_unless($user->isAdmin(), 403, 'ليس لديك صلاحية للقيام بهذا الإجراء.');
     }
 
     private function authorizeAccess(User $user, Order $order)
@@ -229,7 +300,7 @@ class OrderController extends Controller
         abort_unless(
             $user->isAdmin() || $user->id === $order->user_id,
             403,
-            'You do not have permission to access this order.'
+            'ليس لديك صلاحية للوصول إلى هذا الطلب.'
         );
     }
 }
