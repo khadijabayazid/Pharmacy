@@ -15,6 +15,7 @@ class Order extends Model
         'delivery_id',
         'prescription_id',
         'status',
+        'rejection_reason',
         'address',
         'total_price',
         'delivery_price',
