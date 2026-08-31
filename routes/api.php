@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DeliveryController;
 use App\Http\Controllers\Api\HomeController;
@@ -67,4 +68,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/deliveries', [DeliveryController::class, 'index']);
     Route::post('/deliveries', [DeliveryController::class, 'store']);
     Route::put('/deliveries/{delivery}', [DeliveryController::class, 'update']);
+
+    Route::get('/customers', [CustomerController::class, 'index']);
+    Route::delete('/customers/{customer}', [CustomerController::class, 'destroy']);
 });
