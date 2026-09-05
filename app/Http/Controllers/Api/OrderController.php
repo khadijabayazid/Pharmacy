@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AssignDeliveryRequest;
 use App\Http\Requests\PlaceOrderRequest;
 use App\Http\Requests\RejectOrderRequest;
+use App\Http\Resources\OrderResource;
 use App\Models\Order;
 use App\Models\Prescription;
 use App\Models\Product;
@@ -41,7 +42,7 @@ class OrderController extends Controller
 
         return response()->json([
             'status' => true,
-            'data' => $orders,
+            'data' => OrderResource::collection($orders),
         ]);
     }
 
@@ -120,7 +121,7 @@ class OrderController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'تم تقديم الطلب بنجاح، بانتظار موافقة الصيدلية.',
-            'data' => $result['order']->load(['orderItems.product', 'prescription']),
+            'data' => new OrderResource($result['order']->load(['orderItems.product', 'prescription'])),
         ], 201);
     }
 
@@ -129,11 +130,11 @@ class OrderController extends Controller
     {
         $user = $this->currentUser($request);
         $this->authorizeAccess($user, $order);
-        $order->load(['orderItems.product', 'delivery', 'prescription', 'user']);
+        $order->load(['orderItems.product', 'delivery.user', 'prescription', 'user']);
 
         return response()->json([
             'status' => true,
-            'data' => $order,
+            'data' => new OrderResource($order),
         ]);
     }
 
@@ -177,7 +178,7 @@ class OrderController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'تم قبول الطلب بنجاح.',
-            'data' => $order->fresh(['orderItems.product']),
+            'data' => new OrderResource($order->fresh(['orderItems.product'])),
         ]);
     }
 
@@ -200,7 +201,7 @@ class OrderController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'تم رفض الطلب بنجاح.',
-            'data' => $order->fresh(['orderItems.product']),
+            'data' => new OrderResource($order->fresh(['orderItems.product'])),
         ]);
     }
 
@@ -224,7 +225,7 @@ class OrderController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'تم تعيين عامل التوصيل بنجاح.',
-            'data' => $order->fresh(['orderItems.product', 'delivery']),
+            'data' => new OrderResource($order->fresh(['orderItems.product', 'delivery.user'])),
         ]);
     }
 
@@ -247,7 +248,7 @@ class OrderController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'تم تأكيد تسليم الطلب بنجاح.',
-            'data' => $order->fresh(['orderItems.product', 'delivery']),
+            'data' => new OrderResource($order->fresh(['orderItems.product', 'delivery.user'])),
         ]);
     }
 
