@@ -30,6 +30,8 @@ class OrderResource extends JsonResource
                 'id' => $this->delivery->id,
                 'name' => $this->delivery->user->name,
                 'phone' => $this->delivery->user->phone,
+                'vehicle_type' => $this->delivery->vehicle_type,
+                'vehicle_number' => $this->delivery->vehicle_number,
             ] : null),
 
             'prescription' => $this->whenLoaded('prescription', fn() => $this->prescription ? [
@@ -39,7 +41,7 @@ class OrderResource extends JsonResource
 
             'items' => $this->whenLoaded('orderItems', fn() => $this->orderItems->map(fn($item) => [
                 'product_id' => $item->product_id,
-                'name' => $item->product->name,
+                'name' => $item->product->name ?? 'منتج محذوف',
                 'quantity' => $item->quantity,
                 'price' => $item->price,
             ])),

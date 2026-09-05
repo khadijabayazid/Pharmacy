@@ -157,6 +157,11 @@ class OrderController extends Controller
 
             foreach ($order->orderItems as $item) {
                 $product = $products->get($item->product_id);
+
+                if (! $product) {
+                    return ['error' => "أحد منتجات هذا الطلب لم يعد متوفرًا، يرجى رفض الطلب."];
+                }
+
                 if ($item->quantity > $product->quantity) {
                     return ['error' => "الكمية المتوفرة غير كافية حاليًا للمنتج: {$product->name}"];
                 }
