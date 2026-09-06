@@ -42,6 +42,8 @@ class OrderResource extends JsonResource
             'items' => $this->whenLoaded('orderItems', fn() => $this->orderItems->map(fn($item) => [
                 'product_id' => $item->product_id,
                 'name' => $item->product->name ?? 'منتج محذوف',
+                'image_url' => $item->product->image_url ?? null,
+                'is_required_prescription' => $item->product->is_required_prescription ?? false,
                 'quantity' => $item->quantity,
                 'price' => $item->price,
             ])),
