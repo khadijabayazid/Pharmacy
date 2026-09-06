@@ -15,12 +15,10 @@ class PrescriptionSeeder extends Seeder
     {
         Prescription::create([
             'image_path' => 'prescriptions/prescription1.jpg',
-            'status' => 'approved', 
         ]);
 
         Prescription::create([
             'image_path' => 'prescriptions/prescription2.jpg',
-            'status' => 'pending',
             'notes' => 'بانتظار مراجعة الصيدلي.'
         ]);
     }

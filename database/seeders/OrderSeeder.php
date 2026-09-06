@@ -28,8 +28,8 @@ class OrderSeeder extends Seeder
         $delivery1 = Delivery::first();
         $delivery2 = Delivery::skip(1)->first();
  
-        $acceptedPrescription = Prescription::where('status', 'approved')->firstOrFail();
-        $pendingPrescription = Prescription::where('status', 'pending')->first();
+        $firstPrescription = Prescription::query()->firstOrFail();
+        $secondPrescription = Prescription::query()->skip(1)->firstOrFail();
  
         // سيناريو 1: طلب مكتمل بالكامل (بدون وصفة طبية)
         $order1 = Order::create([
@@ -38,6 +38,8 @@ class OrderSeeder extends Seeder
             'prescription_id' => null,
             'status' => 'delivered',
             'address' => 'دمشق - المزة - شارع الوادي',
+            'total_price' => ($panadol->price * 2) + $vitaminC->price,
+            'delivery_price' => Order::DELIVERY_PRICE,
             'assigned_at' => now()->subHours(3),
             'delivered_at' => now()->subHour(),
             'pharmacy_rating' => 5,
@@ -54,9 +56,11 @@ class OrderSeeder extends Seeder
         $order2 = Order::create([
             'user_id' => $sara->id,
             'delivery_id' => $delivery2->id,
-            'prescription_id' => $acceptedPrescription->id,
+            'prescription_id' => $firstPrescription->id,
             'status' => 'on_delivery',
             'address' => 'دمشق - أبو رمانة - شارع الجلاء',
+            'total_price' => $augmentin->price,
+            'delivery_price' => Order::DELIVERY_PRICE,
             'assigned_at' => now()->subMinutes(30),
             'delivered_at' => null,
             'pharmacy_rating' => null,
@@ -74,9 +78,11 @@ class OrderSeeder extends Seeder
         $order3 = Order::create([
             'user_id' => $khadija->id,
             'delivery_id' => null,
-            'prescription_id' => $pendingPrescription->id,
+            'prescription_id' => $secondPrescription->id,
             'status' => 'pending',
             'address' => 'دمشق - المزة - شارع الوادي',
+            'total_price' => $rivotril->price,
+            'delivery_price' => Order::DELIVERY_PRICE,
             'assigned_at' => null,
             'delivered_at' => null,
             'pharmacy_rating' => null,
