@@ -133,6 +133,13 @@ class ProductController extends Controller
             ], 403);
         }
 
+        if($product->orderItems()->exists()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'لا يمكن حذف منتج مرتبط بطلبات',
+            ], 422);
+        }
+
         $product->delete();
 
         return response()->json([
